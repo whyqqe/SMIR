@@ -1,0 +1,138 @@
+{
+  "meta": {
+    "experiment": "SMIR-AAAI-Main",
+    "design": "hard V; curriculum; high p_dist; lam_flow grid; optional F-recovery",
+    "seconds": 1245.63,
+    "host": "dgx-01",
+    "device": "cuda",
+    "p_dist": 0.75,
+    "lam_flow": 0.3,
+    "steps_1": 3000,
+    "steps_2": 5000,
+    "data": "/project/peilab/why/NEW/smir/artifacts/data/SMIR-Shadow-Long"
+  },
+  "phase1": {
+    "task_id": 0.7366666666666667,
+    "task_ood": 0.7933333333333333,
+    "task_state_oracle": 0.7833333333333333,
+    "eta_abs": 3.0858804261245946e-18,
+    "tubular_mse_abs": 0.014502083571084465,
+    "intervention": {
+      "n": 300,
+      "branch_disagree": 0.31666666666666665,
+      "follow_both": 0.31666666666666665,
+      "on_manifold_acc": 0.7666666666666667,
+      "off_manifold_acc": 0.44666666666666666,
+      "on_minus_off": 0.32
+    },
+    "sufficiency_gap": 0.21333333333333335,
+    "length_curve": {
+      "4": 0.7533333333333333,
+      "5": 0.7366666666666667,
+      "6": 0.7366666666666667,
+      "7": 0.7366666666666667,
+      "9": 0.7366666666666667
+    }
+  },
+  "phase2": {
+    "task_id": 0.74,
+    "task_ood": 0.8633333333333333,
+    "task_state_oracle": 0.82,
+    "eta_abs": 3.0858804261245946e-18,
+    "tubular_mse_abs": 0.014502083571084465,
+    "intervention": {
+      "n": 300,
+      "branch_disagree": 0.5,
+      "follow_both": 0.5,
+      "on_manifold_acc": 0.83,
+      "off_manifold_acc": 0.44333333333333336,
+      "on_minus_off": 0.38666666666666666
+    },
+    "sufficiency_gap": 0.18,
+    "length_curve": {
+      "4": 0.77,
+      "5": 0.74,
+      "6": 0.74,
+      "7": 0.74,
+      "9": 0.74
+    }
+  },
+  "final": {
+    "task_id": 0.74,
+    "task_ood": 0.8633333333333333,
+    "task_state_oracle": 0.82,
+    "eta_abs": 3.0858804261245946e-18,
+    "tubular_mse_abs": 0.014502083571084465,
+    "intervention": {
+      "n": 300,
+      "branch_disagree": 0.5,
+      "follow_both": 0.5,
+      "on_manifold_acc": 0.83,
+      "off_manifold_acc": 0.44333333333333336,
+      "on_minus_off": 0.38666666666666666
+    },
+    "sufficiency_gap": 0.18,
+    "length_curve": {
+      "4": 0.77,
+      "5": 0.74,
+      "6": 0.74,
+      "7": 0.74,
+      "9": 0.74
+    }
+  },
+  "gates": {
+    "F_ge_0_50": true,
+    "follow_ge_0_45": true,
+    "on_minus_off_ge_0_15": true,
+    "ood_ge_0_80": true,
+    "eta_abs_lt_0_02": true,
+    "tub_abs_lt_0_05": true,
+    "S_gap_ge_0_15": true,
+    "oracle_ge_0_80": true,
+    "pass_aaai_main": true
+  },
+  "score": 4.292608229154779,
+  "history": {
+    "phase1_tail": [
+      {
+        "step": 2900,
+        "loss": 1.3303327560424805,
+        "acc": 0.78125,
+        "batch_F": 0.2413793103448276
+      },
+      {
+        "step": 2950,
+        "loss": 1.3100686073303223,
+        "acc": 0.75,
+        "batch_F": 0.3728813559322034
+      },
+      {
+        "step": 3000,
+        "loss": 1.3333909511566162,
+        "acc": 0.734375,
+        "batch_F": 0.35
+      }
+    ],
+    "phase2_tail": [
+      {
+        "step": 4900,
+        "loss": 1.1763343811035156,
+        "acc": 0.859375,
+        "batch_F": 0.423728813559322
+      },
+      {
+        "step": 4950,
+        "loss": 1.1407872438430786,
+        "acc": 0.875,
+        "batch_F": 0.576271186440678
+      },
+      {
+        "step": 5000,
+        "loss": 1.1993106603622437,
+        "acc": 0.890625,
+        "batch_F": 0.45901639344262296
+      }
+    ],
+    "phase3_tail": []
+  }
+}

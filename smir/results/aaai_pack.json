@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "purpose": "AAAI remaining-work pack: Table1 main + Table2 contrast + LLM negative",
+    "success_rule": "F>=0.5 & OOD>=0.8 & eta<0.02 & tub<0.05 & S_gap>=0.15"
+  },
+  "table1_main": {
+    "name": "AAAI-Main (best \u03bb)",
+    "F": 0.5866666666666667,
+    "follow": 0.5833333333333334,
+    "on_minus_off": 0.4533333333333333,
+    "eta_abs": 3.0858804261245946e-18,
+    "tub_abs": 0.014502083571084465,
+    "ood": 0.8666666666666667,
+    "oracle": 0.87,
+    "S_gap": 0.23333333333333334,
+    "note": "lam_flow=0.5",
+    "pass": true
+  },
+  "table2_contrast": [
+    {
+      "name": "7B-SCF",
+      "F": 0.0,
+      "follow": 0.0,
+      "on_minus_off": 0.025,
+      "eta_abs": 0.006190609909535852,
+      "tub_abs": 173623.464375,
+      "ood": 0.6,
+      "oracle": null,
+      "S_gap": 0.03,
+      "note": "text E collapse",
+      "pass": false
+    },
+    {
+      "name": "V*",
+      "F": 0.74,
+      "follow": 0.7366666666666667,
+      "on_minus_off": 0.37333333333333335,
+      "eta_abs": 0.2514348350141923,
+      "tub_abs": 0.5472732344083489,
+      "ood": 0.5766666666666667,
+      "oracle": 0.85,
+      "S_gap": 0.03333333333333333,
+      "note": "iso chart + residual V plateau",
+      "pass": false
+    },
+    {
+      "name": "RegV-PURE",
+      "F": 0.51,
+      "follow": 0.49,
+      "on_minus_off": 0.3233333333333333,
+      "eta_abs": 2.730454833319636e-18,
+      "tub_abs": 0.021490833433975544,
+      "ood": 0.77,
+      "oracle": 0.8266666666666667,
+      "S_gap": 0.25333333333333335,
+      "note": "hard V short/medium",
+      "pass": false
+    },
+    {
+      "name": "E2_SoftV",
+      "F": 0.3566666666666667,
+      "eta_abs": 1.3326179229972973e-05,
+      "tub_abs": 0.3523850456193234,
+      "ood": 0.8,
+      "S_gap": 0.24333333333333335,
+      "note": "learnable soft routing"
+    },
+    {
+      "name": "E3_MLP_TeacherForce",
+      "F": 0.20666666666666667,
+      "eta_abs": 0.023305802233129117,
+      "tub_abs": 0.22461799239118893,
+      "ood": 0.68,
+      "S_gap": 0.04,
+      "note": "MLP + teacher"
+    },
+    {
+      "name": "E4_MLP_TaskOnly",
+      "F": 0.013333333333333334,
+      "eta_abs": 8.57328319231669,
+      "tub_abs": 43.79131158749262,
+      "ood": 0.6066666666666667,
+      "S_gap": -0.01,
+      "note": "ablation: no teacher"
+    },
+    {
+      "name": "AAAI-Main (best \u03bb)",
+      "F": 0.5866666666666667,
+      "follow": 0.5833333333333334,
+      "on_minus_off": 0.4533333333333333,
+      "eta_abs": 3.0858804261245946e-18,
+      "tub_abs": 0.014502083571084465,
+      "ood": 0.8666666666666667,
+      "oracle": 0.87,
+      "S_gap": 0.23333333333333334,
+      "note": "lam_flow=0.5",
+      "pass": true
+    }
+  ],
+  "llm_negative": {
+    "name": "7B-SCF text encoder (negative)",
+    "protocol": "same shadow labels; last-token E; Q(z_T)",
+    "F": 0.0,
+    "eta_conjugacy": 0.006190609909535852,
+    "tubular_mse": 173623.464375,
+    "ood": 0.6,
+    "claim": "Standard LLM last-token chart fails intervention faithfulness (F\u22480); tubular unstable."
+  },
+  "lambda_grid": [
+    {
+      "lam_flow": 0.3,
+      "score": 4.292608229154779,
+      "pass": true,
+      "F": 0.5,
+      "ood": 0.8633333333333333,
+      "eta": 3.0858804261245946e-18,
+      "tub": 0.014502083571084465,
+      "S_gap": 0.18
+    },
+    {
+      "lam_flow": 0.5,
+      "score": 4.592608229154779,
+      "pass": true,
+      "F": 0.5866666666666667,
+      "ood": 0.8666666666666667,
+      "eta": 3.0858804261245946e-18,
+      "tub": 0.014502083571084465,
+      "S_gap": 0.23333333333333334
+    }
+  ],
+  "best_lambda": 0.5,
+  "aaai_ready_experimentally": true
+}
