@@ -1,0 +1,26 @@
+# large / local artifacts — do not push
+**/artifacts/
+**/__pycache__/
+**/*.pyc
+**/.pytest_cache/
+**/.venv/
+**/venv/
+**/*.pt
+**/*.pth
+**/*.bin
+**/*.safetensors
+**/*.ckpt
+**/wandb/
+**/.cache/
+**/tmp/
+**/*.out
+**/*.err
+.DS_Store
+.env
+*.egg-info/
+dist/
+build/
+
+# cluster / local env
+cluster_resources.txt
+**/.ipynb_checkpoints/
