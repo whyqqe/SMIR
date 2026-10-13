@@ -1,0 +1,19 @@
+{
+  "meta": {
+    "purpose": "NeurIPS/ICML-oriented continuation theory validation (A+B+C+D)",
+    "theory": "new_theory.md",
+    "n_seeds": 0
+  },
+  "by_seed_claims": {},
+  "by_seed_brief": {},
+  "claims": {
+    "n_pass_nips_core": 0,
+    "n_pass_nips_strong": 0,
+    "n_pass_A": 0,
+    "n_pass_B": 0,
+    "n_pass_C": 0,
+    "n_pass_D": 0,
+    "pass_nips_pack_core": false,
+    "pass_nips_pack_strong": false
+  }
+}

@@ -1,0 +1,601 @@
+% SMIR — AAAI / Workshop English draft (expanded toward ~6--7 content pages).
+% Self-contained two-column; swap preamble for official aaai2x.sty when submitting.
+\documentclass[letterpaper,10pt,twocolumn]{article}
+
+\usepackage[margin=0.75in]{geometry}
+\usepackage{times}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{url}
+\usepackage{natbib}
+\usepackage{enumitem}
+\usepackage{microtype}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{nosep,leftmargin=*}
+\setlength{\columnsep}{0.25in}
+\setlength{\parindent}{1em}
+\setlength{\parskip}{0pt}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{theorem}{Theorem}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{remark}{Remark}
+
+\newcommand{\Tub}{\mathrm{Tub}}
+\newcommand{\TV}{\mathrm{TV}}
+\newcommand{\EE}{\mathbb{E}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\cD}{\mathcal{D}}
+
+\title{\bf SMIR: Certifying Implicit Reasoning via\\
+Semantic-Manifold Flow Conjugacy}
+
+\author{
+Anonymous Authors\\
+Paper under double-blind review
+}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Implicit (latent) reasoning is often judged by task accuracy, yet high accuracy can arise from off-manifold shortcuts that ignore semantic dynamics.
+We propose \textbf{SMIR} (Semantic Manifold Implicit Reasoning): a geometric certificate that a model implements authentic implicit reasoning if and only if its latent trajectory stays in a tubular neighborhood of a semantics-induced manifold, its latent vector field is conjugate to the semantic dynamics, and its readout is intervention-faithful on that chart.
+We prove a \emph{certificate decomposition} into chart~$E$, dynamics~$V$, and readout~$Q$; show that \emph{wrong charts are uncertifiable}; and give a gated learnability condition that separates a Hard-$V$ feasibility upper bound from learnable routers.
+On a controlled register-shadow benchmark, a Hard chart+dynamics baseline reaches Oracle-F~$0.59$ and OOD~$0.87$; gated Discrete and Soft routers transfer the readout and attain Flow-F~$0.55$--$0.57$ with OOD~$\ge 0.85$, while a text last-token chart yields F~$\approx 0$ with tubular collapse---matching the wrong-chart theorem.
+Ablations show that unstructured task-only dynamics destroy conjugacy, and that Oracle-F alone is insufficient when evaluating learnable flows.
+SMIR reframes latent CoT evaluation as a falsifiable geometric protocol rather than accuracy alone.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+Large language models increasingly ``think'' in continuous latent states rather than (or in addition to) explicit token traces~\citep{hao2024coconut,zhu2025codi}.
+This shift promises denser computation, but it also makes evaluation harder: the final-answer accuracy of a latent reasoner does \emph{not} certify that intermediate updates track semantic computation.
+Models can answer correctly while remaining insensitive to interventions on the states that supposedly carry reasoning~\citep{turpin2023faithfulness,lanham2023measuring}, and recent analyses of latent CoT show that activation-level causal dependence can decay along training~\citep{faithful2025latent}.
+
+A concrete failure mode motivates our work.
+Suppose a shadow task provides ground-truth intermediate machine states $s_t$ and a distinguishing intervention that flips the label when $s_T$ is replaced by a wrong but nearby state $s_T^-$.
+A model that merely memorizes surface cues may keep high task accuracy yet assign nearly identical readouts to $E(s_T)$ and $E(s_T^-)$.
+Worse, if the encoder $E$ itself folds $s_T$ and $s_T^-$ together (a \emph{wrong chart}), \emph{no} downstream readout can recover intervention faithfulness.
+Accuracy-centric reporting cannot distinguish these cases from genuine latent reasoning.
+
+Causal abstraction and distributed alignment search~\citep{geiger2021causal,geiger2024das} test whether neural subspaces implement symbolic variables, and on-manifold intervention work argues that off-manifold patches are ill-posed~\citep{onmanifold2025}.
+These lines motivate geometry and interventions, yet they do not provide an operational certificate that jointly constrains (i)~the representation chart, (ii)~multi-step latent dynamics, and (iii)~readout faithfulness, together with a theorem explaining when popular interfaces (e.g., last-token text embeddings) are \emph{structurally} uncertifiable.
+
+We introduce \textbf{SMIR} (Semantic Manifold Implicit Reasoning).
+Informally, latent reasoning is authentic when the model's internal trajectory stays near a semantics-induced manifold, advances under a vector field conjugate to the semantic dynamics, and answers as a function of manifold coordinates that respond to interventions.
+Our contributions are:
+\begin{enumerate}[leftmargin=*]
+\item A geometric definition of $\varepsilon$-SMIR with tubular support, flow conjugacy, manifold sufficiency, and intervention--tangent equivalence, plus a curvature-sensitive composition bound.
+\item \textbf{Certificate decomposition} (Theorem~\ref{thm:decomp}): certifiability $\Leftrightarrow$ legal chart $E$ $\wedge$ conjugate dynamics $V$ $\wedge$ faithful readout $Q$, with distinct \textbf{Oracle-F} and \textbf{Flow-F} metrics.
+\item \textbf{Wrong-chart impossibility} (Theorem~\ref{thm:wrong}): charts that collapse intervention-distinguishable states cannot be certified by any Lipschitz readout.
+\item A \textbf{gated learnability} protocol (Proposition~\ref{prop:gate}): train $Q$ on the true field first, then learn routers; joint annealing without a gate has no guarantee.
+\item Controlled experiments supporting the Hard upper bound, gated Discrete/Soft routers, text-chart failure, and conjugacy ablations.
+\end{enumerate}
+
+\paragraph{Scope (what we do \emph{not} claim).}
+We study a shadow domain with known semantic states.
+We do not claim unrestricted natural-language certificates without a legal chart.
+Hard structured $V$ yields $\eta\!\approx\!0$ \emph{by construction}; it certifies the readout leg, not that conjugacy was learned from scratch.
+Riemannian comparison, tubular neighborhoods, and intervention tests are classical tools; our novelty is the packaged certificate for latent reasoning with separable falsification.
+
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{Latent and continuous reasoning.}
+Coconut-style methods replace explicit CoT tokens by continuous states updated inside the model~\citep{hao2024coconut}.
+Follow-ups study continuous distillation and latent bridges~\citep{zhu2025codi,latentcot2025mech}.
+Mechanistic evidence suggests that longer latent budgets need not implement full step-by-step rollouts and may rely on late fusion~\citep{latentcot2025mech}.
+Faithfulness measured by input counterfactuals and noise ablation can change non-monotonically across checkpoints~\citep{faithful2025latent}.
+SMIR asks a complementary question: when is a latent flow geometrically conjugate to an explicit semantic dynamical system?
+
+\paragraph{Causal abstraction and representation alignment.}
+Causal abstraction formalizes when a high-level algorithm is a faithful simplification of a network~\citep{geiger2021causal}.
+DAS learns distributed alignments for interchange interventions~\citep{geiger2024das}.
+If alignment maps are unrestricted and nonlinear, abstraction can become vacuous~\citep{nonlinear2025}.
+SMIR takes a different cut: fix or test a chart, then certify dynamics conjugacy and readout faithfulness, and prove that some charts are impossible to certify.
+
+\paragraph{On-manifold interventions.}
+Activation patching off the data manifold can activate spurious pathways~\citep{onmanifold2025}.
+Tubular neighborhoods provide local normal-bundle coordinates for controlled interventions.
+We use tubular support as one leg of a reasoning certificate, tied to semantic metrics rather than activation density alone.
+
+\paragraph{Faithfulness of verbalized reasoning.}
+A large literature shows that natural-language CoT need not cause model predictions~\citep{turpin2023faithfulness,lanham2023measuring}.
+Our Oracle-F / Flow-F metrics adapt intervention tests to chart-encoded states versus learned latent rollouts, targeting latent rather than verbal traces.
+
+\section{SMIR Theory}
+\label{sec:theory}
+
+This section develops the formal certificate.
+We first define the semantic geometry, then the four geometric conditions, then the main theorems used in the experiments (decomposition, wrong charts, gated learnability), and finally the variational objective.
+
+\subsection{Semantic manifold and intervention metric}
+Let $\cD$ be a task family and $\mathcal{S}$ the set of legitimate intermediate reasoning states, quotiented by future behavioral equivalence (states that induce the same answer law under all continuations are identified).
+\begin{definition}[Semantic manifold]
+\label{def:manifold}
+We assume there exists a smooth $d$-dimensional manifold $\cM$ with $d\ll D$ and an embedding $\iota:\cM\hookrightarrow\mathbb{R}^n$ identifying the continuous relaxation of $\mathcal{S}$.
+\end{definition}
+Intuitively, register configurations, proof stacks, or graph-search frontiers have far fewer degrees of freedom than ambient neural activations.
+
+Let $\mathcal{C}$ be a compact family of continuations/queries and $K:\cM\times\mathcal{C}\to\Delta(\mathcal{Y})$ a $C^2$ behavioral kernel ($|\mathcal{Y}|<\infty$).
+\begin{definition}[Intervention metric]
+\label{def:gstar}
+In a local chart, for $v\in T_s\cM$,
+\begin{equation}
+g^*_s(v,v)
+\;:=\;
+\sup_{c\in\mathcal{C}}
+\Big\|
+\partial_\varepsilon\big|_{0}
+K(s+\varepsilon v,\,c)
+\Big\|_{\TV}^2.
+\label{eq:gstar}
+\end{equation}
+A Fisher--Rao style variant replaces the supremum by an expectation of score inner products.
+On the open set where $g^*$ is positive definite, $(\cM,g^*)$ is Riemannian.
+\end{definition}
+Geodesics of $g^*$ are the ``cheapest'' state changes in an intervention sense: directions invisible to all continuations have zero length.
+
+\subsection{Semantic dynamics and latent models}
+Legal operators $a\in\mathcal{A}$ induce maps $f_a:\cM\to\cM$.
+Writing $\phi_t^{a}$ for a continuous-time expansion (or using $\log$-maps for discrete steps),
+\begin{equation}
+V^*_a(s)
+\;:=\;
+\frac{d}{dt}\Big|_{0}\phi_t^{a}(s)
+\in T_s\cM,
+\qquad
+\dot s = V^*(s,u(t)),\quad u(t)\in\mathcal{U}.
+\label{eq:semflow}
+\end{equation}
+A neural model exposes ambient latents $z\in\mathbb{R}^D$, a chart $E_\theta:\cM\to\mathbb{R}^D$, a controlled field $V_\theta(z,u)$, and a readout $Q_\theta$:
+\begin{equation}
+\dot z = V_\theta(z,u),
+\qquad
+\hat y \sim Q_\theta(z).
+\label{eq:latflow}
+\end{equation}
+Discrete Coconut-style updates are Euler steps of~\eqref{eq:latflow}; SMIR requires them to track~\eqref{eq:semflow} under $E_\theta$.
+
+\paragraph{Standing assumptions (used below).}
+$E_\theta$ is a $C^2$ immersion and locally bi-Lipschitz onto its image; $V_\theta$ is $C^1$ and $L$-Lipschitz on a tubular neighborhood of radius $\varepsilon_0$; $Q_\theta$ is $\Lambda$-Lipschitz in total variation; sectional curvature on the working region is bounded by $\kappa$ and the injectivity radius is bounded below.
+
+\subsection{Four geometric conditions}
+\begin{definition}[$\varepsilon$-SMIR]
+\label{def:smir}
+$\theta$ implements $\varepsilon$-SMIR on $\cD$ with budget $T$ and intervention family $\mathcal{I}$ if, with probability at least $1-\delta$ along trajectories,
+\begin{align}
+&\textbf{(G1) Tubular support:}\quad
+z(t)\in
+\Tub_\varepsilon\!\big(E_\theta(\cM)\big)
+:=\big\{z:\mathrm{dist}\big(z,E_\theta(\cM)\big)\le\varepsilon\big\};
+\label{eq:g1}\\
+&\textbf{(G2) Flow conjugacy:}\quad
+\big\|
+DE_\theta(s)[V^*(s,u)]-V_\theta(E_\theta(s),u)
+\big\|
+\le\eta;
+\label{eq:g2}\\
+&\textbf{(G3) Manifold sufficiency:}\quad
+\exists\,q,\Pi\text{ with }
+\TV\big(Q_\theta(z),q(\Pi(z))\big)\le\varepsilon_Q;
+\label{eq:g3}\\
+&\textbf{(G4) Intervention--tangent equivalence:}\quad
+\nonumber\\
+&\qquad
+do\!\big(s\leftarrow\exp_s(v)\big)
+\;\longleftrightarrow\;
+z\leftarrow E_\theta(s)+DE_\theta[v]+O(\|v\|^2),
+\nonumber\\
+&\qquad\text{with TV response matching $\sqrt{g^*_s(v,v)}$ up to $\varepsilon_I$.}
+\label{eq:g4}
+\end{align}
+\end{definition}
+
+\paragraph{Relation to sufficiency / faithfulness axioms.}
+G1+G3 operationalize sufficiency (answers ignore normal/bypass coordinates).
+G2+G4 operationalize intervention faithfulness along trajectories.
+Integrating G2 in time yields composition closure (next theorem).
+Thus classical S/F-style criteria appear as coordinate projections of SMIR, with explicit curvature and tube-radius error terms.
+
+\subsection{Off-manifold shortcuts are falsifiable}
+\begin{theorem}[Off-manifold mass implies fake reasoning]
+\label{thm:off}
+Suppose $Q_\theta$ is Lipschitz and there exists a shortcut set $\mathcal{Z}_{\mathrm{short}}$ with $\mathrm{dist}(\mathcal{Z}_{\mathrm{short}},E_\theta(\cM))\ge\varepsilon>0$ that attains high accuracy under the non-interventional data distribution.
+If $g^*$ separates some pair via $\mathcal{I}$, then there exists an intervention battery with probability at least $p_0(\varepsilon,\mathcal{I})>0$ on which manifold trajectories change answers as semantics require, while shortcut trajectories change by $O(e^{-\kappa\varepsilon})$ (or remain invariant) whenever normal derivatives of $Q$ are suppressed by G3.
+\end{theorem}
+\begin{proof}[Proof idea]
+Use Fermi coordinates $(x,n)$ along the chart image.
+G3 forces $\partial_n Q$ small for $\|n\|\ge\varepsilon$, so tangential semantic interventions barely move shortcut predictions, while $g^*$ lower-bounds the on-manifold response.
+\end{proof}
+Theorem~\ref{thm:off} is the geometric teeth behind ``accuracy $\neq$ reasoning'': high accuracy off the tube is \emph{refutable} by interventions.
+
+\subsection{Conjugacy composition bound}
+Write $e_k=\|z_k-E_\theta(s_k)\|$ for discrete steps of size $\Delta t$ with $N\Delta t=T$.
+\begin{theorem}[Composition bound]
+\label{thm:compose}
+Under the standing assumptions and one-step conjugacy $\le\eta$,
+\begin{equation}
+e_{k+1}
+\;\le\;
+(1+L\Delta t)\,e_k
++\eta\Delta t
++C(\kappa)\,\mathrm{inj}^{-1}e_k^2\Delta t
++O((\Delta t)^2).
+\label{eq:compose}
+\end{equation}
+Iterating and linearizing the leading terms yields
+\begin{equation}
+e_N
+\;\le\;
+e^{LT}e_0
++\eta\frac{e^{LT}-1}{L}
++O\!\big(\kappa\cdot\mathrm{poly}(e^{LT})\cdot\sup_k e_k\big).
+\label{eq:composeN}
+\end{equation}
+If the readout has TV sensitivity $\le\Lambda$, terminal answer error satisfies
+$\TV(\hat Y,Y^*)\le\Lambda e_N+\varepsilon_Q$.
+\end{theorem}
+\begin{proof}[Proof idea]
+Split the error into tangential conjugacy residual and normal drift in the tubular neighborhood; apply discrete Gronwall to the linear part and Riemannian comparison for the quadratic curvature remainder.
+\end{proof}
+Equation~\eqref{eq:composeN} is why multi-step latent CoT cannot be certified from endpoint accuracy alone: errors accumulate as $e^{LT}$ unless $\eta$ and the tube radius are controlled.
+
+\subsection{Pullback metric matching}
+Let $\tilde g = E_\theta^* g_{\mathrm{eucl}}$ (or a model-induced ambient metric).
+\begin{theorem}[Local intervention faithfulness from metric match]
+\label{thm:metric}
+If $\|\tilde g-g^*\|_{C^0(U)}\le\varepsilon_g$ on a chart neighborhood $U$, then for sufficiently small tangential $v$,
+\begin{equation}
+\Big|
+\mathrm{TV\textrm{-}response}\big(E_\theta(s);v\big)
+-\sqrt{g^*_s(v,v)}
+\Big|
+\;\le\;
+O(\varepsilon_g\|v\|+\|v\|^2).
+\label{eq:metric}
+\end{equation}
+\end{theorem}
+Thus G4 is not an extra heuristic: it follows from aligning the pullback geometry with $g^*$.
+When $E$ is a known scaled identity chart and $Q$ is calibrated in those coordinates, matching $g^*$ reduces largely to enforcing Oracle-F on distinguishing batteries (used in our experiments).
+
+\subsection{Certificate decomposition}
+On a shadow domain we operationalize
+\begin{align}
+\varepsilon_E
+&=\EE\big[\mathrm{dist}(z_t^{\mathrm{obs}},E(s_t))\big],
+\label{eq:epsE}\\
+\eta_V
+&=\EE\big\|V_\theta(E(s),u)-DE[V^*(s,u)]\big\|,
+\label{eq:etaV}\\
+\delta_Q
+&=\EE\big[\indicator\{\arg\max Q(E(s^+))\neq \arg\max Q(E(s^-))\}\big],
+\label{eq:oracleF}
+\end{align}
+and Flow-F $\delta_Q^{\mathrm{flow}}$ by comparing the learned rollout from $s_0$ against the wrong-branch terminal (same query).
+
+\begin{theorem}[Decomposition]
+\label{thm:decomp}
+Under the standing assumptions:
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Necessity.}
+$\varepsilon$-SMIR implies $\varepsilon_E=O(\varepsilon)$, $\eta_V\le\eta$, and a positive lower bound on $\delta_Q$ and $\delta_Q^{\mathrm{flow}}$ for intervention-rich batteries.
+\item \textbf{Sufficiency.}
+If $\varepsilon_E$ and $\eta_V$ are small and Oracle-F is high on $E(\cM)$, then
+\begin{equation}
+\delta_Q^{\mathrm{flow}}
+\;\ge\;
+\delta_Q
+- C\Big(\varepsilon_E+\eta\tfrac{e^{LT}-1}{L}+\varepsilon_Q\Big).
+\label{eq:flowf}
+\end{equation}
+\item \textbf{Separability.}
+Fixing two blocks and varying one yields leg-specific falsification:
+freeze $(V^*,E)$ to test $Q$; freeze $(Q,E)$ to test $V$; replace $E$ by a wrong chart to test Theorem~\ref{thm:wrong}.
+\end{enumerate}
+\end{theorem}
+\begin{proof}[Proof sketch]
+Necessity projects G1--G4 onto~\eqref{eq:epsE}--\eqref{eq:oracleF} and applies Theorem~\ref{thm:compose} for Flow-F.
+For sufficiency, bound $\|z_T-E(s_T)\|$ by~\eqref{eq:composeN}; Lipschitzness of $Q$ limits hard-decision flips between Oracle and Flow batteries, giving~\eqref{eq:flowf}.
+Separability is immediate from the dependence graph of the three errors.
+\end{proof}
+
+\begin{remark}[Hard-$V$ vs.\ learnable $V$]
+\label{rem:hard}
+Success with frozen true dynamics and trained $Q$ establishes only the readout leg.
+It does \emph{not} imply that arbitrary $V_\theta$ is learnable; Soft/MLP underperformance remains compatible with Hard success.
+\end{remark}
+
+\subsection{Wrong charts and chart equivalence}
+\begin{definition}[$\gamma$-wrong chart]
+\label{def:wrong}
+$E^\dagger$ is a $\gamma$-wrong chart if there exists an intervention-distinguishable pair with semantic response $\ge\gamma$ yet $\|E^\dagger(s^+)-E^\dagger(s^-)\|\le\tau$.
+\end{definition}
+
+\begin{theorem}[Wrong charts are uncertifiable]
+\label{thm:wrong}
+If $\tau<\gamma/(2L_Q)$, then for every $L_Q$-Lipschitz readout depending only on the image of $E^\dagger$,
+\[
+\TV\big(Q(E^\dagger(s^+)),Q(E^\dagger(s^-))\big)
+\le L_Q\tau
+<\gamma/2,
+\]
+so G4 fails on that battery.
+If the support of true trajectories is essentially disjoint from $\Tub_\varepsilon(E^\dagger(\cM))$, G1 fails as well.
+\end{theorem}
+
+\begin{corollary}[Last-token interfaces]
+\label{cor:text}
+If a text encoder induces a $\gamma$-wrong chart relative to the semantic quotient (folding or scale pathology), then under a shared-label shadow protocol one expects F$\approx 0$ and tubular blow-up---as structural consequences, not tuning accidents.
+\end{corollary}
+
+\begin{theorem}[Chart equivalence]
+\label{thm:equiv}
+If $\Psi$ is a fiber-preserving $C^1$ bi-Lipschitz map on a tube with $E_2=\Psi\circ E_1$, $V_2=(D\Psi)V_1\circ\Psi^{-1}$, and $Q_2=Q_1\circ\Psi^{-1}$, then $(E_1,V_1,Q_1)$ and $(E_2,V_2,Q_2)$ succeed or fail Definition~\ref{def:smir} together (up to constant rescaling).
+In particular, affine rescalings $E\mapsto aE+b$ ($a\neq 0$) are certificate-equivalent, while irreversible projections with nontrivial kernel intersecting $T\cM$ along $g^*$-separable directions are generally not.
+\end{theorem}
+Theorem~\ref{thm:equiv} justifies using $E(s)=s/c$ as a legal representative without claiming that the chart was learned from data.
+
+\subsection{Gated learnability}
+Joint optimization of $(V,Q)$ is nonconvex.
+We do not claim global convergence of gradient descent; instead we give a checkable sufficient protocol.
+
+\begin{proposition}[Gated learnability]
+\label{prop:gate}
+Fix a legal chart.
+If stage~A trains $Q$ on the true field $V^*$ to Oracle-F $\ge 1-\alpha$ and bounded task risk, then any subsequent stage that reduces $\eta_V$ to $\eta$ while keeping $Q$ $\varepsilon_Q$-stable on $E(\cM)$ satisfies~\eqref{eq:flowf}.
+Conversely, if stage~A only achieves Oracle-F $\le\beta\ll 1$, then~\eqref{eq:flowf} cannot exceed $\beta$ up to $o(1)$, regardless of later conjugacy improvements; early annealing that inflates $\eta_V$ further suppresses Flow-F.
+\end{proposition}
+Proposition~\ref{prop:gate} is the theoretical justification for Hard$\to Q$ transfer before learning Discrete/Soft routers, and for treating no-gate joint Soft as a negative control.
+
+\subsection{Variational principle and minimal objectives}
+Matching semantic and latent controlled actions yields a Dirichlet-type correspondence.
+\begin{theorem}[Action matching; informal]
+\label{thm:var}
+If $z=E_\theta\circ s$ and both conjugacy~\eqref{eq:g2} and metric match~\eqref{eq:metric} hold, then the latent action functional and the semantic action functional differ by at most $C_T(\eta+\varepsilon_g)$.
+Conversely, uniformly small latent action on a compact trajectory class forces small integrated conjugacy residuals.
+\end{theorem}
+Expanding the geometry into training terms gives
+\begin{equation}
+\begin{aligned}
+\mathcal{L}_{\mathrm{SMIR}}
+&=
+\mathcal{L}_{\mathrm{task}}
++\lambda_1\EE\|V_\theta(E(s),u)-DE[V^*]\|^2
+\\
+&\quad
++\lambda_2\EE\|\tilde g_s-g^*_s\|_F^2
++\lambda_3\EE\big[\mathrm{dist}^2(z_t,E(\cM))\big]
+\\
+&\quad
++\lambda_4\EE\big[\TV(Q(z),Q(E(\Pi(z))))\big].
+\end{aligned}
+\label{eq:lfull}
+\end{equation}
+When $E$ is fixed and legal (Theorem~\ref{thm:equiv}), tubular and metric penalties become largely redundant with conjugacy plus Oracle-F, yielding the minimal objective used in our gated runs:
+\begin{equation}
+\mathcal{L}_{\min}
+=
+\mathcal{L}_{\mathrm{task}}
++\lambda_F\mathcal{L}_{\mathrm{dist}}
++\lambda_V\|V_\theta(E(s),u)-DE[V^*]\|^2.
+\label{eq:lmin}
+\end{equation}
+Learning $E$ itself requires restoring $\lambda_2,\lambda_3$; otherwise Theorem~\ref{thm:wrong} applies.
+
+\subsection{Discrete CoT as a polygonal chart path}
+\begin{proposition}[CoT polygons]
+\label{prop:cot}
+Pointwise distillation that matches $E(s^{(i)})\approx z_{t_i}$ at annotated CoT states does \emph{not} imply small $\eta$.
+If additionally $\eta$ is small and endpoints agree, sufficiently fine CoT polygons are Hausdorff-close to the continuous semantic trajectory in $g^*$.
+\end{proposition}
+This explains ``distillation succeeded but interventions failed'': point matching without conjugacy leaves freedom for off-manifold shortcuts between annotated knots.
+
+\section{Experimental Protocol}
+\label{sec:method}
+
+\subsection{Shadow domain}
+\textbf{SMIR-Shadow-Long} generates 5-register programs with operations $\{\mathrm{add},\mathrm{sub},\mathrm{mul}\}$.
+Training chains have lengths in $\{2,3,4,5\}$; OOD evaluation emphasizes longer chains.
+Each example includes the full state trajectory $\{s_t\}$, actions, a continuation query, and---when distinguishing---a wrong terminal state that flips the label under the same query.
+This yields an explicit semantic field $V^*$ and intervention batteries for Oracle-F / Flow-F.
+
+\subsection{Architectures}
+All methods share a legal chart $E(s)=s/c$ ($c{=}40$) unless stated otherwise, a query encoder, and a binary answer head $Q$.
+\begin{itemize}[leftmargin=*]
+\item \textbf{Hard-$V$}: exact structured register transitions; train only $Q$ (readout-leg upper bound / M1).
+\item \textbf{Discrete-gated}: transfer $Q$ from Hard; learn a discrete op router executed with hard arithmetic (Gumbel-softmax STE).
+\item \textbf{Soft-gated}: transfer $Q$; anneal soft mixture bias $5\!\to\!0$ only after Oracle-F gate.
+\item \textbf{Soft-joint}: Soft router trained jointly without the Hard$\to Q$ gate (negative control).
+\item \textbf{MLP$\pm$teacher}: unstructured residual $V$ with / without absolute teacher forcing (ablation).
+\item \textbf{Text chart}: frozen 7B last-token embeddings as $E^\dagger$ with a probe head (Theorem~\ref{thm:wrong} instance).
+\end{itemize}
+
+\subsection{Training and gates}
+Hard curricula follow a short-chain high-distinguishing phase then mixed long chains (optional F-recovery).
+Gated routers freeze or lightly fine-tune $Q$ while optimizing routing with conjugacy / route CE terms (Eq.~\ref{eq:lmin}).
+\begin{algorithm}[t]
+\caption{Gated learnability (Prop.~\ref{prop:gate})}
+\begin{algorithmic}[1]
+\State Train $Q$ on Hard $V^*$ until Oracle-F $\ge \tau_{\mathrm{gate}}$ and OOD is healthy
+\State Transfer $Q$ into Discrete or Soft architecture
+\If{Oracle-F still $\ge \tau_{\mathrm{gate}}$}
+  \State Learn router $V$ (optionally anneal Soft bias); monitor Flow-F
+\Else
+  \State Abort anneal; report gate failure
+\EndIf
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Success thresholds.}
+\textbf{M1 (Hard):} Oracle-F$\ge 0.5$, OOD$\ge 0.8$, $\eta<0.02$, tub$<0.05$, sufficiency gap $\ge 0.15$.
+\textbf{M2 (learnable):} Flow-F$\ge 0.45$ with relaxed $\eta$/tub tolerances appropriate for approximate routers.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Main certificate table}
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccccc}
+\toprule
+Method & Oracle-F & Flow-F & OOD & $\eta$ & tub \\
+\midrule
+Hard-$V$ (E1) & $\mathbf{0.59}$ & $0.59$ & $\mathbf{0.87}$ & $\approx 0$ & $0.015$ \\
+Discrete-gated & $0.55$ & $0.55$ & $0.85$ & $2.5\!\times\!10^{-4}$ & $0.023$ \\
+Soft-gated & $0.57$ & $0.57$ & $0.85$ & $\approx 0$ & $0.003$ \\
+7B text chart & $0.00$ & -- & $0.60$ & small & $>10^{5}$ \\
+\bottomrule
+\end{tabular}
+\caption{Primary certificate metrics on SMIR-Shadow-Long (seed~$0$ for gated runs; Hard matches our AAAI main configuration).
+Gated routers clear M2 on Flow-F while preserving OOD; the text chart fails as predicted by Theorem~\ref{thm:wrong}.}
+\label{tab:main}
+\end{table}
+
+Table~\ref{tab:main} is the headline result.
+Hard-$V$ clears M1: under a legal chart, intervention-faithful readouts exist.
+After $Q$ transfer, both Discrete-gated and Soft-gated clear M2 with routing accuracy $1.0$ on evaluated steps, supporting Proposition~\ref{prop:gate}.
+The 7B last-token chart yields Oracle-F~$0$ and catastrophic tubular error on the same labels, matching Theorem~\ref{thm:wrong}.
+
+\subsection{Ablations: conjugacy is not optional}
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccc}
+\toprule
+Method & Oracle-F & OOD & $\eta$ & tub \\
+\midrule
+Soft-gated (ours) & $0.57$ & $0.85$ & $\approx 0$ & $0.003$ \\
+MLP + teacher force & $0.21$ & $0.68$ & $0.023$ & $0.22$ \\
+MLP task-only & $0.01$ & $0.61$ & $8.57$ & $43.8$ \\
+\bottomrule
+\end{tabular}
+\caption{Unstructured $V$ ablations (venue suite).
+Task-only training collapses conjugacy; teacher forcing helps $\eta$ but not intervention faithfulness to gated levels.}
+\label{tab:ablate}
+\end{table}
+
+Table~\ref{tab:ablate} shows that minimizing task loss alone does not yield SMIR certificates.
+Teacher forcing reduces conjugacy error relative to task-only MLP but still underperforms gated structured routers on Oracle-F and OOD.
+
+\subsection{Length behavior}
+For Soft-gated, task accuracy across evaluation horizons $\{4,5,6,7,9\}$ stays in $[0.80,0.84]$, consistent with a controlled composition error under small $\eta$ (Theorem~\ref{thm:compose}).
+Hard and Discrete show similarly flat length curves in the same range, whereas text-chart OOD remains weak.
+
+\subsection{What the metrics buy}
+Oracle-F diagnoses $Q\circ E$ on true states; Flow-F diagnoses whether the learned $V$ preserves distinguishing structure under rollout.
+Reporting only task accuracy---or only Oracle-F after freezing Hard $V$---would overstate latent reasoning.
+We recommend both F metrics whenever latent CoT is claimed.
+
+\section{Discussion}
+\label{sec:discuss}
+
+\paragraph{Positioning.}
+SMIR's incremental contribution is the certificate \emph{package}: decomposition, wrong-chart impossibility, and gated learnability for latent reasoning---not the invention of manifolds or interventions per se.
+This clarifies how Hard upper bounds, learnable routers, and LLM text-chart negatives can be true simultaneously without contradiction.
+
+\paragraph{Limitations.}
+Experiments focus on a controlled register domain; multi-seed aggregates and a second semantic domain (e.g., graph reachability shadows) are natural extensions.
+Our LLM evidence is a negative chart result, not a positive large-scale latent CoT system.
+Open theory includes chart identifiability without shadows, Transformer--flow consistency, and global convergence without gates.
+
+\paragraph{Broader impact.}
+Certificates can reduce overclaiming about ``latent reasoning,'' but shadow supervision may be unavailable in the wild; Theorem~\ref{thm:wrong} still warns against treating arbitrary embeddings as legal charts.
+
+\section{Conclusion}
+\label{sec:conc}
+
+We proposed SMIR, a geometric certificate for implicit reasoning based on tubular support, flow conjugacy, and intervention-faithful readouts.
+Certificate decomposition and wrong-chart impossibility specify what latent CoT evaluations can and cannot claim.
+Controlled experiments support a Hard readout upper bound, gated Discrete/Soft routers with strong Flow-F, and text-chart failure.
+We advocate reporting Oracle-F and Flow-F alongside accuracy whenever latent reasoning is claimed.
+
+\section*{Acknowledgments}
+Blinded for review.
+
+\appendix
+\section{Additional formal details}
+\label{app:formal}
+\paragraph{Metric.}
+One workable form is
+$g^*_s(v,v)=\sup_c \|\partial_\varepsilon|_0 K(s+\varepsilon v,c)\|_{\TV}^2$,
+with Fisher variants when kernels are smooth.
+\paragraph{Decomposition proof idea.}
+Necessity projects G1--G4 onto $(\varepsilon_E,\eta_V,\delta_Q)$.
+Sufficiency applies Theorem~\ref{thm:compose} to bound $\|z_T-E(s_T)\|$, then uses readout Lipschitzness to control hard-decision flips between Oracle and Flow batteries, yielding~\eqref{eq:flowf}.
+\paragraph{Wrong-chart proof idea.}
+Lipschitz $Q$ cannot create TV response larger than $L_Q\tau$; if this is $<\gamma/2$ while semantics respond by $\ge\gamma$, G4 fails.
+
+\section{Hyperparameters}
+\label{app:hyper}
+Register dimension $d{=}5$, scale $c{=}40$, Adam, batch $64$.
+Hard phases use $p_{\mathrm{dist}}\!\approx\!0.75$--$0.85$ and $\lambda_{\mathrm{flow}}\!\in\!\{0.3,0.5\}$.
+Gated routers use route CE weight $\approx\!1$ while $Q$ is frozen or lightly tuned; Soft anneal starts only if Oracle-F$\ge 0.55$ after transfer.
+Evaluation uses $n{=}300$ distinguishing-capable ID examples unless noted.
+Code and configs will be released.
+
+\begin{thebibliography}{99}
+
+\bibitem[{Geiger et~al.(2021)}]{geiger2021causal}
+A.~Geiger, H.~Luu, M.~Icard, and C.~Potts.
+\newblock Causal abstractions of neural networks.
+\newblock In \emph{NeurIPS}, 2021.
+
+\bibitem[{Geiger et~al.(2024)}]{geiger2024das}
+A.~Geiger, Z.~Wu, C.~Potts, T.~Icard, and N.~Goodman.
+\newblock Finding alignments between interpretable causal variables and distributed neural representations.
+\newblock In \emph{CLeaR}, 2024.
+
+\bibitem[{Hao et~al.(2024)}]{hao2024coconut}
+S.~Hao, S.~Sukhbaatar, D.~Su, X.~Li, Z.~Hu, J.~Weston, and Y.~Tian.
+\newblock Training large language models to reason in a continuous latent space.
+\newblock In \emph{COLM}, 2024.
+
+\bibitem[{Lanham et~al.(2023)}]{lanham2023measuring}
+T.~Lanham et~al.
+\newblock Measuring faithfulness in chain-of-thought reasoning.
+\newblock \emph{arXiv:2307.13702}, 2023.
+
+\bibitem[{Turpin et~al.(2023)}]{turpin2023faithfulness}
+M.~Turpin, J.~Michael, E.~Perez, and S.~Bowman.
+\newblock Language models don't always say what they think: unfaithful reasoning in chain-of-thought prompting.
+\newblock In \emph{NeurIPS}, 2023.
+
+\bibitem[{Zhu et~al.(2025)}]{zhu2025codi}
+Z.~Zhu et~al.
+\newblock CODI: Continuous chain-of-thought via self-distillation.
+\newblock 2025.
+
+\bibitem[{OnManifold(2025)}]{onmanifold2025}
+On-manifold activation patching: well-defined counterfactuals and stable causal effects in neural networks.
+\newblock \emph{arXiv} preprint, 2025.
+
+\bibitem[{FaithfulLatent(2025)}]{faithful2025latent}
+Final checkpoints are not enough: analyzing latent reasoning faithfulness along training trajectories.
+\newblock \emph{arXiv} preprint, 2025.
+
+\bibitem[{LatentMech(2025)}]{latentcot2025mech}
+Do latent-CoT models think step-by-step? A mechanistic study on sequential reasoning tasks.
+\newblock \emph{arXiv} preprint, 2025.
+
+\bibitem[{Nonlinear(2025)}]{nonlinear2025}
+The non-linear representation dilemma: is causal abstraction enough for mechanistic interpretability?
+\newblock In \emph{NeurIPS}, 2025.
+
+\end{thebibliography}
+
+\end{document}

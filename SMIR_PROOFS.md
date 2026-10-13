@@ -2,6 +2,7 @@
 
 **配套主文：** `SMIR.md`  
 **目的：** 补齐假设、引理与主定理的完整证明；标明所用经典结果；指出离散/随机情形的推广条件。  
+**覆盖：** 定理 1–4（几何核心）、定理 5–7（证书分解 / 错误图表 / 等价类）、命题 8（门控可学性）、推论 9（最小充分目标）。  
 **符号：** 与主文一致；ambient 欧氏范数记 \(\|\cdot\|\)；切空间范数在未标明时由 \(g^*\) 或欧氏范数按上下文指定。
 
 ---
@@ -476,20 +477,125 @@ d_{H,g^*}(\gamma_{\mathrm{cot}},\gamma_{\mathrm{lat}}\circ\psi)\le\varepsilon
 
 ---
 
-## 10. 假设与缺口的诚实清单（理论补齐后仍开放）
+## 10. 定理 5（证书分解）— 证明
+
+### 10.1 精确陈述
+
+沿用主文 (15)(16)。设干预电池 \(\mathcal B\) 为有限对集合 \(\{(s^+,s^-,c)\}\)，其上语义响应
+\[
+\rho^*:=\mathrm{TV}\big(K(s^+,c),K(s^-,c)\big)\ge\gamma>0.
+\]
+Oracle-F 与 Flow-F 分别对应主文 \(\delta_Q,\delta_Q^{\mathrm{flow}}\)（期望取自 \(\mathcal B\) 与数据分布）。
+
+**定理 5.** 在 A1–A7 下：  
+(i) 若定义 1 的 \(\varepsilon\)-SMIR 成立，则 \(\varepsilon_E=O(\varepsilon)\)，\(\eta_V\le\eta\)，且存在只依赖 \(\gamma,\Lambda\) 的 \(c>0\) 使 \(\delta_Q,\delta_Q^{\mathrm{flow}}\ge c\)。  
+(ii) 若 \(\varepsilon_E\le\varepsilon\)，\(\eta_V\le\eta\)，G3 以 \(\varepsilon_Q\) 成立，且 \(\delta_Q\ge 1-\alpha\)，则式 (17) 成立。  
+(iii) 固定两块只变一块的检验设计，其失败模式分别只证伪对应腿。
+
+### 10.2 证明
+
+**(i) 必要性。**  
+G1 直接给出 \(\varepsilon_E\) 意义下的管状质量（脚点距离期望受 \(\varepsilon\) 控制）。G2 即 \(\eta_V\le\eta\)。G4 + 定理 3：对 \(\rho^*\ge\gamma\) 的电池，合法图表上 TV 响应至少 \(\gamma-O(\varepsilon_g)\)；再由 A7，硬判决不一致概率（Oracle-F）有正下界。Flow-F：由定理 2，终端 \(z_T\) 距 \(E(s_T)\) 至多 \(e^{LT}\varepsilon_E+\eta(e^{LT}-1)/L+O(\kappa)\)；故轨迹级响应与 Oracle 至多差 \(O(\Lambda)\) 倍该距离，SMIR 成立时 Flow-F 亦有正下界。  
+任一腿失败：若 \(\varepsilon_E\) 大则 G1 败；若 \(\eta_V\) 大则 G2 败；若 \(\delta_Q\) 小则 G4 败。□
+
+**(ii) 充分性 / 式 (17)。**  
+记 \(z_T=\Phi_V(E(s_0),u)\)，\(z_T^*=E(s_T)\)（真语义终端的图表点）。定理 2 给出
+\[
+\|z_T-z_T^*\|\le e^{LT}\varepsilon_E+\eta\tfrac{e^{LT}-1}{L}+R_\kappa,
+\]
+其中 \(R_\kappa\) 为曲率余项（小误差机制下吸收进 \(C\)）。  
+对干预对，正确/错误分支各用上式。Oracle 判决在 \(E(s_T^\pm)\) 上以概率 \(\delta_Q\) 分歧。将读出从 \(E(s_T)\) 挪到 \(z_T\)：A7 给出 TV 变化 \(\le\Lambda\|z_T-E(s_T)\|\)，从而硬判决翻转概率 \(\le C'(\varepsilon_E+\eta(e^{LT}-1)/L+\varepsilon_Q)\)（并入 G3 的 \(\varepsilon_Q\)）。故
+\[
+\delta_Q^{\mathrm{flow}}\ge\delta_Q-C\big(\varepsilon_E+\eta\tfrac{e^{LT}-1}{L}+\varepsilon_Q\big).
+\]
+□
+
+**(iii) 可分检验。**  
+冻 \(V=V^*\)、\(E=\mathrm{id}\)（或尺度等价图表）只训 \(Q\)：\(\eta_V=\varepsilon_E=0\)（构造），观测到的 F 变化仅来自 \(\delta_Q\)。  
+冻 \(Q,E\) 只变 \(V\)：\(\delta_Q\) 固定，式 (17) 的下降项仅由 \(\eta_V,\varepsilon_E\) 驱动，专测动力学腿。  
+换错误 \(E^\dagger\)：由定理 6，即使 \(V,Q\) 任意，G4 仍败。□
+
+---
+
+## 11. 定理 6（错误图表）— 证明
+
+**定理 6.** 设 \(E^\dagger\) 满足主文 (18)，且 \(\tau<\gamma/(2L_Q)\)。则对一切 \(L_Q\)-Lipschitz 读出 \(Q\)，
+\[
+\mathrm{TV}\big(Q(E^\dagger(s^+)),Q(E^\dagger(s^-))\big)\le L_Q\tau<\gamma/2,
+\]
+而语义核响应 \(\ge\gamma\)。故不存在使 G4（干预–切向等价至误差 \(<\gamma/2\)）成立的 \(Q\)。硬分类器若将 \(E^\dagger(s^\pm)\) 映入同一决策胞腔，则该电池上 Oracle-F 贡献为 0。  
+若真轨迹支撑落在 \(\mathrm{Tub}_\varepsilon(E(\mathcal M))\) 而与 \(\mathrm{Tub}_\varepsilon(E^\dagger(\mathcal M))\) 交测度为 0，则 G1 对 \(E^\dagger\) 亦失败。□
+
+**注（last-token）。** 经验上 last-token 映射常对寄存器商不可逆或尺度病态，验证 (18) 即可调用本定理；无需假设 LLM「没有推理」。
+
+---
+
+## 12. 定理 7（图表等价类）— 证明
+
+**(i)** 设 \(\Psi\) 为双 Lipschitz、\(E_2=\Psi\circ E_1\)，\(V_2=(D\Psi)\,V_1\circ\Psi^{-1}\)，\(Q_2=Q_1\circ\Psi^{-1}\)。  
+管状邻域在 \(\Psi\) 下双射；G1 对 \(E_1\) 成立 iff 对 \(E_2\) 成立（半径按 \(\mathrm{Lip}(\Psi)\) 改标）。  
+共轭：  
+\[
+V_2(E_2(s),u)-DE_2[V^*]
+=(D\Psi)\big(V_1(E_1(s),u)-DE_1[V^*]\big),
+\]
+故 \(\eta_2\le\mathrm{Lip}(\Psi)\,\eta_1\)。读出 TV 响应差 \(\le O(|\mathrm{Lip}(\Psi)-1|)\) 量级的改标。因此定义 1 对两套参数同时成立或失败。□
+
+**(ii)** 取 \(\Psi(z)=az+b\)（\(a\neq 0\)）。则 \(\Psi\) 双 Lipschitz；硬场在图表坐标下同步乘 \(a\) 即得推前共轭。故 \(E(s)=s/c\) 为规范代表元。□
+
+**(iii)** 若线性映射 \(P\) 满足 \(\ker P\cap T_s\mathcal M\neq\{0\}\) 且该核方向被某干预电池以 \(g^*\) 可分，则 \(E^\dagger=P\circ E\) 满足定理 6 的 (18)（\(\tau=0\) 于该对），故非证书等价。□
+
+---
+
+## 13. 命题 8（分阶段可学性门控）— 证明
+
+**设定。** \(E\) 固定于证书等价类。阶段 A 只优化 \(Q\)，场固定为真场 \(V^*\)（或硬执行）。设达到 \(\delta_Q(Q_0)\ge 1-\alpha\) 与任务风险 \(\le\alpha_0\)。
+
+**阶段 B。** 在路径 \(\{V_t\}_{t\in[0,1]}\) 上优化 \(V\)，并保持 \(Q\) 在 \(E(U)\) 上 \(\varepsilon_Q\)-稳定（可通过小学习率、正则或间歇冻结 \(Q\) 实现）。若终端 \(\eta_V(V_1)\le\eta\)，则由定理 5(ii)，
+\[
+\delta_Q^{\mathrm{flow}}(V_1,Q_0)
+\ge
+1-\alpha-C\big(\eta\tfrac{e^{LT}-1}{L}+\varepsilon_Q\big).
+\]
+选取 \(\eta,\varepsilon_Q\) 充分小即得 Flow-F 门控。□
+
+**反方向（门控必要性的反例型论述）。**  
+若阶段 A 仅有 \(\delta_Q\le\beta\ll 1\)，则式 (17) 右侧上界 \(\le\beta\)；无论随后如何降 \(\eta_V\)，Flow-F 不能超过该上界加 \(o(1)\)。若同时退火使瞬时场远离 \(V^*\)，则 \(\eta_V\) 项在过程中放大，进一步吞食 Flow-F。故「未达标即联合退火」无定理保证——与主文失败模式叙述一致。□
+
+**不声称：** 无门控联合 GD 的全局收敛；离散路由 STE 的无偏性。
+
+---
+
+## 14. 推论 9（最小充分目标 (19)）
+
+在 \(E\) 固定且影子可观测时：  
+- \(\mathcal L_{\mathrm{conj}}\) 控制 \(\eta_V\) ⇒ 定理 2；  
+- \(\ell_{\mathrm{dist}}\) 控制 \(\delta_Q\) ⇒ 定理 5(ii) 的 Oracle 端；  
+- 任务项控制终端标定与 OOD。  
+
+由定理 2，管状偏离被 \(\eta_V\) 积分控制，故 \(\lambda_3\) 冗余。  
+由定理 7(ii) 与读出校准，欧氏图表上 \(\lambda_2\) 退化为对 \(\delta_Q\) 的一阶要求（完整 \(g^*\) 回归仅在学 \(E\) 时必需）。  
+法向无关由 F 电池的 off-manifold 对照操作化。  
+因此 (19) 对「固定合法 \(E\)、学 \(V,Q\)」是最小充分的。□
+
+---
+
+## 15. 假设与缺口的诚实清单（理论补齐后仍开放）
 
 | 项目 | 状态 |
 |------|------|
-| 定理 1–4、命题 0/5/7 的形式证明 | **已补齐**（本文） |
+| 定理 1–4、命题 0/5/7 的形式证明 | **已补齐** |
+| 定理 5–7、命题 8、推论 9 | **已补齐**（本文 §10–14） |
 | 有限 \(\mathcal Y\) 上 TV↔Fisher 等价常数 | 存在性已证；显式最优常数未必要 |
 | A8 指数法向衰减 | 强形式；弱形式 \(\varepsilon_n\) 已给 |
-| 无影子时 \(g^*\) 可辨识 | **仍开放**（主文开放问题 3） |
-| Transformer 离散层 ↔ 连续 \(V_\theta\) | **仍开放**（需额外一致性假设） |
+| 无影子时 \(g^*\) / \(E\) 可辨识 | **仍开放** |
+| Transformer 离散层 ↔ 连续 \(V_\theta\) | **仍开放** |
+| 无门控联合 GD 全局收敛 | **仍开放**（命题 8 仅门控充分） |
 | 统计均匀收敛的显式样本复杂度 | 可另文；不影响几何定理 |
 
 ---
 
-## 11. 与主文公式编号对照
+## 16. 与主文公式编号对照
 
 | 主文 | 本附录 |
 |------|--------|
@@ -497,6 +603,11 @@ d_{H,g^*}(\gamma_{\mathrm{cot}},\gamma_{\mathrm{lat}}\circ\psi)\le\varepsilon
 | 定理 2 式 (7)(8)(9) | §4 (T2.1–T2.3) |
 | 定理 3 式 (10)(11) | §5（含读出校准澄清） |
 | 定理 4 式 (12)(13) | §6 |
+| 定理 5 式 (15)(16)(17) | §10 |
+| 定理 6 式 (18) | §11 |
+| 定理 7 | §12 |
+| 命题 8 | §13 |
+| 最小充分 (19) | §14 推论 9 |
 | 命题 LIFIR 联系 | §2 命题 0 |
 | 命题 5 CoT | §7 |
 | 训练式 (14) | §8 推论 6 |
@@ -504,15 +615,22 @@ d_{H,g^*}(\gamma_{\mathrm{cot}},\gamma_{\mathrm{lat}}\circ\psi)\le\varepsilon
 
 ---
 
-## 12. 结语
+## 17. 结语
 
 本附录将 SMIR 主文中的「证明要点」升级为：**明确假设 → 引理 → 完整证明 → 弱化版本 → 仍开放问题**。  
-几何证书的核心链条为：
+几何证书的核心链条现为：
 
 \[
-\text{管状支撑 + 共轭 + 度量对齐 + 法向无关}
-\implies
-\text{干预可证伪假推理 + 曲率敏感组合界 + 变分可训练性}.
+\underbrace{E_{\mathrm{合法}}}_{\text{定理 6/7}}
+\ \wedge\
+\underbrace{V_{\mathrm{共轭}}}_{\eta_V}
+\ \wedge\
+\underbrace{Q_{\mathrm{忠实}}}_{\delta_Q}
+\ \xRightarrow{\text{定理 5}}
+\ \underbrace{\mathrm{Flow}\text{-}\mathrm{F}}_{\delta_Q^{\mathrm{flow}}}
+\ +\
+\text{曲率敏感组合界}.
 \]
 
-后续理论工作优先：无影子 \(g^*\) 估计、离散 Transformer 与连续流的一致性定理。
+分阶段门控（命题 8）把「Hard 上界成功」与「可学习 \(V\)」严格分开，避免叙事僭越。  
+后续理论工作优先：无影子图表可辨识、离散 Transformer 与连续流一致性、无门控全局收敛。

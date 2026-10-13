@@ -72,19 +72,16 @@
 | W3 | 多尺度 LLM 负结果 +（可选）神经读出弱正 |
 | W4 | 定理–指标对照、论文初稿、开源代码复现脚本 |
 
-## 提交命令（实现后）
+## 提交命令（已实现）
+
+详见 `SMIR_NEXT_TIER_RUN.md`。一键完整流水线：
 
 ```bash
-# SoftV 冲主门槛（示例；实现 run_smir_next_soft.py 后）
 cd /project/peilab/why/NEW
-sbatch smir/slurm/35_smir_next_soft.sbatch
-
-# 多种子稳健性
-SEEDS=0,1,2 sbatch smir/slurm/36_smir_next_multiseed.sbatch
-
-# LLM 锚
-sbatch smir/slurm/37_smir_next_llm_anchor.sbatch
+sbatch smir/slurm/35_smir_next_tier.sbatch
 ```
+
+实现文件：`train/run_smir_next_tier.py`（Hard/Soft退火/Discrete/MLP）、`run_smir_gstar_probe.py`、`run_smir_next_pack.py`。
 
 ## 成功/止损
 

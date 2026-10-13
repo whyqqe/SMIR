@@ -1,0 +1,109 @@
+{
+  "meta": {
+    "purpose": "Strengthen pack addressing review defects: domain2 + multiseed reg + weak-positive adapter",
+    "defects_targeted": [
+      "single_domain",
+      "statistical_ sufficiency",
+      "llm_only_negative"
+    ]
+  },
+  "register_pub_claims_by_seed": {
+    "seed_0": {
+      "pass_m1": true,
+      "pass_m2_discrete": true,
+      "pass_m2_soft": true,
+      "gated_beats_joint": true,
+      "pass_diag": true,
+      "pass_charts": true,
+      "pass_pub_core": true
+    },
+    "seed_1": {
+      "pass_m1": true,
+      "pass_m2_discrete": true,
+      "pass_m2_soft": false,
+      "gated_beats_joint": true,
+      "pass_diag": true,
+      "pass_charts": true,
+      "pass_pub_core": true
+    }
+  },
+  "graph_claims_by_seed": {
+    "seed_0": {
+      "pass_m1": true,
+      "pass_m2_discrete": true,
+      "gated_beats_joint": true,
+      "pass_charts": true,
+      "pass_diag": true,
+      "pass_domain2": true
+    },
+    "seed_1": {
+      "pass_m1": true,
+      "pass_m2_discrete": true,
+      "gated_beats_joint": true,
+      "pass_charts": true,
+      "pass_diag": true,
+      "pass_domain2": true
+    },
+    "seed_2": {
+      "pass_m1": true,
+      "pass_m2_discrete": true,
+      "gated_beats_joint": true,
+      "pass_charts": true,
+      "pass_diag": true,
+      "pass_domain2": true
+    }
+  },
+  "chart_adapter": {
+    "meta": {
+      "purpose": "weak-positive chart adapter vs random text chart"
+    },
+    "legal_chart_OracleF": 0.22666666666666666,
+    "adapter_recovered": {
+      "Oracle-F": 0.29,
+      "follow": 0.26,
+      "n": 300
+    },
+    "random_text_chart": {
+      "Oracle-F": 0.03666666666666667,
+      "follow": 0.016666666666666666,
+      "n": 300
+    },
+    "claims": {
+      "adapter_beats_random": true,
+      "adapter_near_legal": false,
+      "pass_weak_positive": false
+    }
+  },
+  "aaai_main_ref": {
+    "name": "AAAI-Main (best \u03bb)",
+    "F": 0.5866666666666667,
+    "follow": 0.5833333333333334,
+    "on_minus_off": 0.4533333333333333,
+    "eta_abs": 3.0858804261245946e-18,
+    "tub_abs": 0.014502083571084465,
+    "ood": 0.8666666666666667,
+    "oracle": 0.87,
+    "S_gap": 0.23333333333333334,
+    "note": "lam_flow=0.5",
+    "pass": true
+  },
+  "llm_negative_ref": {
+    "name": "7B-SCF text encoder (negative)",
+    "protocol": "same shadow labels; last-token E; Q(z_T)",
+    "F": 0.0,
+    "eta_conjugacy": 0.006190609909535852,
+    "tubular_mse": 173623.464375,
+    "ood": 0.6,
+    "claim": "Standard LLM last-token chart fails intervention faithfulness (F\u22480); tubular unstable."
+  },
+  "claims": {
+    "pass_register_m1": true,
+    "pass_register_m2": true,
+    "pass_graph_m1": true,
+    "pass_graph_m2": true,
+    "pass_graph_charts": true,
+    "pass_weak_positive_adapter": false,
+    "pass_cross_domain": true,
+    "pass_strengthen_core": true
+  }
+}
